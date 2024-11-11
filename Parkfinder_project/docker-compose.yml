@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+    depends_on:
+      - app
+    networks:
+      - map_network
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    ports:
+      - "20080:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: c21750829@mytudublin.ie
+      PGADMIN_DEFAULT_PASSWORD: admin
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgis
+    networks:
+      - map_network
+
+  postgis:
+    image: kartoza/postgis:latest
+    container_name: postgis-db
+    environment:
+      POSTGRES_USER: parkuser
+      POSTGRES_PASSWORD: securepassword
+      POSTGRES_DB: parkfinder
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - map_network
+
+  app:
+    build:
+      context: ./  # Set context to the root directory (Parkfinder_project)
+      dockerfile: ./map_app/Dockerfile  # Reference Dockerfile inside map_app
+    container_name: django-app
+    command: /app/docker-entrypoint.sh  
+    volumes:
+      - ./:/app  # Mount the entire project into /app
+    depends_on:
+      - postgis
+    ports:
+      - "8000:8000"
+    networks:
+      - map_network
+
+networks:
+  map_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  pgadmin_data:
